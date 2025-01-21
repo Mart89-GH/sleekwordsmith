@@ -5,7 +5,7 @@ import {
   Heading1, Heading2, Heading3, Undo, Redo, Search, Mic,
   PaintBucket, Grid, MessageSquare, FileText, Image, Table,
   Link, IndentIncrease, IndentDecrease, Superscript, Subscript,
-  LineHeight, Strikethrough, Eraser, FileInput, Printer, Download,
+  ArrowUpDown, Strikethrough, Eraser, FileInput, Printer, Download,
   Share2, Settings, HelpCircle
 } from 'lucide-react';
 import {
@@ -210,7 +210,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
                   Decrease Indent
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onFormat('lineHeight')}>
-                  <LineHeight className="w-4 h-4 mr-2" />
+                  <ArrowUpDown className="w-4 h-4 mr-2" />
                   Line Height
                 </DropdownMenuItem>
               </DropdownMenuContent>
