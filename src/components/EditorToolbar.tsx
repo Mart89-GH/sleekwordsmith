@@ -36,6 +36,14 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
   const fontFamilies = ['Arial', 'Times New Roman', 'Calibri', 'Helvetica', 'Georgia', 'Verdana', 'Tahoma'];
   const tableSizes = ['2x2', '3x3', '4x4', '5x5'];
 
+  const handleAdvancedFeature = (feature: string) => {
+    console.log(`Advanced feature triggered: ${feature}`);
+    toast({
+      title: "Coming Soon",
+      description: `The ${feature} feature will be implemented soon.`,
+    });
+  };
+
   return (
     <div className="bg-white border-b border-gray-200 p-2 space-y-2 sticky top-0 z-50 shadow-sm">
       <div className="flex items-center gap-2">
@@ -301,6 +309,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
       </div>
     </div>
   );
+
 };
 
 export default EditorToolbar;
