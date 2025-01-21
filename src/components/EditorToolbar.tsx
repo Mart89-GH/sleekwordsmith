@@ -59,9 +59,13 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
                 <FileInput className="w-4 h-4 mr-2" />
                 New
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleAdvancedFeature("Save")}>
+              <DropdownMenuItem onClick={() => onFormat('exportPDF')}>
                 <Download className="w-4 h-4 mr-2" />
-                Save
+                Export as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onFormat('exportWord')}>
+                <FileText className="w-4 h-4 mr-2" />
+                Export as Word
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleAdvancedFeature("Print")}>
                 <Printer className="w-4 h-4 mr-2" />
