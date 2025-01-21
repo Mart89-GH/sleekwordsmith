@@ -21,10 +21,11 @@ export default {
       colors: {
         editor: {
           primary: "#6E59A5",
-          background: "#FFFFFF",
+          background: "#F8F9FA",
           text: "#1A1F2C",
           toolbar: "rgba(255, 255, 255, 0.95)",
           hover: "#8B5CF6",
+          border: "#E2E8F0",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
