@@ -34,13 +34,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
   const { toast } = useToast();
   const fontSizes = ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36', '48', '72'];
   const fontFamilies = ['Arial', 'Times New Roman', 'Calibri', 'Helvetica', 'Georgia', 'Verdana', 'Tahoma'];
-
-  const handleAdvancedFeature = (feature: string) => {
-    toast({
-      title: "Coming Soon",
-      description: `${feature} functionality will be available soon`,
-    });
-  };
+  const tableSizes = ['2x2', '3x3', '4x4', '5x5'];
 
   return (
     <div className="bg-white border-b border-gray-200 p-2 space-y-2 sticky top-0 z-50 shadow-sm">
@@ -233,17 +227,24 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => handleAdvancedFeature("Insert Table")}>
-                  <Table className="w-4 h-4 mr-2" />
-                  Table
+                <DropdownMenuItem>
+                  <Select onValueChange={(value) => onFormat('insertTable', value)}>
+                    <SelectTrigger>
+                      <Table className="w-4 h-4 mr-2" />
+                      Insert Table
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tableSizes.map((size) => (
+                        <SelectItem key={size} value={size}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleAdvancedFeature("Insert Image")}>
+                <DropdownMenuItem onClick={() => onFormat('insertImage')}>
                   <Image className="w-4 h-4 mr-2" />
-                  Image
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleAdvancedFeature("Insert Link")}>
-                  <Link className="w-4 h-4 mr-2" />
-                  Link
+                  Insert Image
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -261,6 +262,18 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => onFormat('toggleFindReplace')}>
+                  <Search className="w-4 h-4 mr-2" />
+                  Find & Replace
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onFormat('startDictation')}>
+                  <Mic className="w-4 h-4 mr-2" />
+                  Start Dictation
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onFormat('stopDictation')}>
+                  <Mic className="w-4 h-4 mr-2" />
+                  Stop Dictation
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onFormat('undo')}>
                   <Undo className="w-4 h-4 mr-2" />
                   Undo
@@ -272,10 +285,6 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
                 <DropdownMenuItem onClick={() => onFormat('find')}>
                   <Search className="w-4 h-4 mr-2" />
                   Find
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onFormat('startDictation')}>
-                  <Mic className="w-4 h-4 mr-2" />
-                  Dictation
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleAdvancedFeature("Clear Formatting")}>
                   <Eraser className="w-4 h-4 mr-2" />
