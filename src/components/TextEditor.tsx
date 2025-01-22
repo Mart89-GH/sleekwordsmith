@@ -16,6 +16,7 @@ const TextEditor = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [language, setLanguage] = useState<'en' | 'es'>('en');
   const editorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -69,10 +70,14 @@ const TextEditor = () => {
 
       if (command === 'startDictation') {
         if (isRecording) {
-          await conversation.endSession();
+          if (sessionId) {
+            await conversation.endSession(sessionId);
+            setSessionId(null);
+          }
           setIsRecording(false);
         } else {
-          await conversation.startSession();
+          const session = await conversation.startSession();
+          setSessionId(session.id);
           setIsRecording(true);
         }
         return;
