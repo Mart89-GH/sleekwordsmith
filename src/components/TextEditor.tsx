@@ -77,7 +77,9 @@ const TextEditor = () => {
           setSessionId(null);
           setIsRecording(false);
         } else {
-          const sessionId = await conversation.startSession();
+          const sessionId = await conversation.startSession({
+            agentId: 'default' // Required parameter for startSession
+          });
           setSessionId(sessionId);
           setIsRecording(true);
         }
