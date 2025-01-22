@@ -75,7 +75,6 @@ const TextEditor = () => {
           setIsRecording(false);
         } else {
           const sessionId = await conversation.startSession({
-            language: language,
             model: 'eleven_multilingual_v2'
           });
           setSessionId(sessionId);
