@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import EditorToolbar from './EditorToolbar';
+import EditorContent from './EditorContent';
+import PageNavigation from './PageNavigation';
 import Comments from './Comments';
 import { useConversation } from '@11labs/react';
 import { useToast } from "@/components/ui/use-toast";
-import { Button } from "@/components/ui/button";
 
 interface Page {
   id: string;
@@ -33,19 +34,9 @@ const TextEditor = () => {
   });
 
   useEffect(() => {
-    // Initialize basic formatting capabilities
-    if (editorRef.current) {
-      editorRef.current.addEventListener('input', (e) => {
-        console.log('Input event:', e);
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    // Check if current page exceeds A4 height
     const checkPageOverflow = () => {
       if (editorRef.current) {
-        const A4_HEIGHT_PX = 1123; // A4 height in pixels at 96 DPI
+        const A4_HEIGHT_PX = 1123;
         if (editorRef.current.scrollHeight > A4_HEIGHT_PX) {
           const overflowContent = editorRef.current.innerHTML;
           const newPage: Page = { id: uuidv4(), content: '' };
@@ -85,10 +76,10 @@ const TextEditor = () => {
           setSessionId(null);
           setIsRecording(false);
         } else {
-          const sessionId = await conversation.startSession({
-            agentId: 'default' // Required parameter for startSession
+          const newSessionId = await conversation.startSession({
+            agentId: 'default'
           });
-          setSessionId(sessionId);
+          setSessionId(newSessionId);
           setIsRecording(true);
         }
         return;
@@ -99,7 +90,6 @@ const TextEditor = () => {
         return;
       }
 
-      // Handle standard formatting commands
       if (editorRef.current) {
         document.execCommand(command, false, value);
         editorRef.current.focus();
@@ -121,12 +111,6 @@ const TextEditor = () => {
     editorRef.current.innerHTML = content.replace(originalText, suggestion);
   };
 
-  const handlePageChange = (pageIndex: number) => {
-    if (pageIndex >= 0 && pageIndex < pages.length) {
-      setCurrentPage(pageIndex);
-    }
-  };
-
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
     const updatedPages = [...pages];
     updatedPages[currentPage].content = e.currentTarget.innerHTML;
@@ -139,34 +123,17 @@ const TextEditor = () => {
       <EditorToolbar onFormat={handleFormat} />
       <div className="max-w-6xl mx-auto p-8 flex gap-4">
         <div className="flex-1">
-          {/* Page Navigation */}
-          <div className="mb-4 flex gap-2">
-            {pages.map((_, index) => (
-              <Button
-                key={index}
-                variant={currentPage === index ? "default" : "outline"}
-                onClick={() => handlePageChange(index)}
-              >
-                Page {index + 1}
-              </Button>
-            ))}
-          </div>
-
-          {/* Editor */}
-          <div
+          <PageNavigation
+            pages={pages}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+          />
+          <EditorContent
             ref={editorRef}
-            contentEditable
-            className="min-h-[1123px] w-[794px] mx-auto p-8 bg-white rounded-lg shadow-sm
-                     focus:outline-none focus:ring-2 focus:ring-editor-primary/20
-                     text-editor-text text-base leading-relaxed
-                     transition-all duration-200"
-            suppressContentEditableWarning
+            content={pages[currentPage].content}
             onInput={handleInput}
-            style={{ direction: 'ltr' }} // Fix for text direction
-            dangerouslySetInnerHTML={{ __html: pages[currentPage].content }}
           />
         </div>
-        
         {showComments && (
           <Comments onSuggestionApply={handleSuggestionApply} />
         )}
