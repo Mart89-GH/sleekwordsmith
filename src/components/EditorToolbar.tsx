@@ -6,7 +6,7 @@ import {
   PaintBucket, Grid, MessageSquare, FileText, Image, Table,
   Link, IndentIncrease, IndentDecrease, Superscript, Subscript,
   ArrowUpDown, Strikethrough, Eraser, FileInput, Printer, Download,
-  Share2, Settings, HelpCircle
+  Share2, Settings, HelpCircle, Languages
 } from 'lucide-react';
 import {
   Select,
@@ -245,6 +245,10 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
                   <Link className="w-4 h-4 mr-2" />
                   Link
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onFormat('toggleComments')}>
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Comments
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -276,6 +280,14 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
                 <DropdownMenuItem onClick={() => onFormat('startDictation')}>
                   <Mic className="w-4 h-4 mr-2" />
                   Dictation
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onFormat('setLanguage', 'en')}>
+                  <Languages className="w-4 h-4 mr-2" />
+                  English
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onFormat('setLanguage', 'es')}>
+                  <Languages className="w-4 h-4 mr-2" />
+                  Spanish
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleAdvancedFeature("Clear Formatting")}>
                   <Eraser className="w-4 h-4 mr-2" />

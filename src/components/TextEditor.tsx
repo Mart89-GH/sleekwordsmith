@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import EditorToolbar from './EditorToolbar';
+import Comments from './Comments';
 import { cn } from '@/lib/utils';
 import { useToast } from "@/components/ui/use-toast";
 import { DocumentVersion, generatePDF, exportToWord } from '../utils/documentUtils';
@@ -13,12 +14,24 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useConversation } from '@11labs/react';
 
 export const TextEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [currentContent, setCurrentContent] = useState<string>('');
+  const [showComments, setShowComments] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [language, setLanguage] = useState<'en' | 'es'>('en');
+
+  const conversation = useConversation({
+    overrides: {
+      agent: {
+        language: language,
+      },
+    },
+  });
 
   useEffect(() => {
     // Save version every 30 seconds if content changed
@@ -39,7 +52,7 @@ export const TextEditor = () => {
     return () => clearInterval(saveInterval);
   }, [currentContent]);
 
-  const handleFormat = (command: string, value?: string) => {
+  const handleFormat = async (command: string, value?: string) => {
     try {
       if (command === 'exportPDF') {
         generatePDF(editorRef.current)
@@ -85,6 +98,29 @@ export const TextEditor = () => {
         return;
       }
 
+      if (command === 'toggleComments') {
+        setShowComments(!showComments);
+        return;
+      }
+
+      if (command === 'startDictation') {
+        if (isRecording) {
+          await conversation.endSession();
+          setIsRecording(false);
+        } else {
+          await conversation.startSession({
+            agentId: "default", // Replace with your actual agent ID
+          });
+          setIsRecording(true);
+        }
+        return;
+      }
+
+      if (command === 'setLanguage') {
+        setLanguage(value as 'en' | 'es');
+        return;
+      }
+
       // Handle standard formatting commands
       if (value) {
         document.execCommand(command, false, value);
@@ -101,6 +137,14 @@ export const TextEditor = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleSuggestionApply = (originalText: string, suggestion: string) => {
+    if (!editorRef.current) return;
+    
+    const content = editorRef.current.innerHTML;
+    editorRef.current.innerHTML = content.replace(originalText, suggestion);
+    setCurrentContent(editorRef.current.innerHTML);
   };
 
   const formatDate = (date: Date) => {
@@ -131,6 +175,10 @@ export const TextEditor = () => {
             onInput={(e) => setCurrentContent(e.currentTarget.innerHTML)}
           />
         </div>
+        
+        {showComments && (
+          <Comments onSuggestionApply={handleSuggestionApply} />
+        )}
         
         <Sheet>
           <SheetTrigger asChild>
