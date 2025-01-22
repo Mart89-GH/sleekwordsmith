@@ -27,6 +27,9 @@ const TextEditor = () => {
         language: language,
       },
     },
+    customLlmExtraBody: {
+      model: 'eleven_multilingual_v2'
+    }
   });
 
   useEffect(() => {
@@ -74,9 +77,7 @@ const TextEditor = () => {
           setSessionId(null);
           setIsRecording(false);
         } else {
-          const sessionId = await conversation.startSession({
-            model: 'eleven_multilingual_v2'
-          });
+          const sessionId = await conversation.startSession();
           setSessionId(sessionId);
           setIsRecording(true);
         }
