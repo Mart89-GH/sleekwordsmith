@@ -70,14 +70,15 @@ const TextEditor = () => {
 
       if (command === 'startDictation') {
         if (isRecording) {
-          if (sessionId) {
-            await conversation.endSession(sessionId);
-            setSessionId(null);
-          }
+          conversation.endSession();
+          setSessionId(null);
           setIsRecording(false);
         } else {
-          const session = await conversation.startSession();
-          setSessionId(session.id);
+          const sessionId = await conversation.startSession({
+            language: language,
+            model: 'eleven_multilingual_v2'
+          });
+          setSessionId(sessionId);
           setIsRecording(true);
         }
         return;
