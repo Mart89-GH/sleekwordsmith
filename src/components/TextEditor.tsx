@@ -33,12 +33,20 @@ const TextEditor = () => {
   });
 
   useEffect(() => {
-    // Check if current page content exceeds A4 height
+    // Initialize basic formatting capabilities
+    if (editorRef.current) {
+      editorRef.current.addEventListener('input', (e) => {
+        console.log('Input event:', e);
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    // Check if current page exceeds A4 height
     const checkPageOverflow = () => {
       if (editorRef.current) {
         const A4_HEIGHT_PX = 1123; // A4 height in pixels at 96 DPI
         if (editorRef.current.scrollHeight > A4_HEIGHT_PX) {
-          // Create new page with overflow content
           const overflowContent = editorRef.current.innerHTML;
           const newPage: Page = { id: uuidv4(), content: '' };
           setPages(prevPages => {
@@ -92,8 +100,11 @@ const TextEditor = () => {
       }
 
       // Handle standard formatting commands
-      document.execCommand(command, false, value);
-      editorRef.current?.focus();
+      if (editorRef.current) {
+        document.execCommand(command, false, value);
+        editorRef.current.focus();
+        console.log(`Applied format: ${command} with value: ${value}`);
+      }
     } catch (error) {
       console.error('Error executing command:', command, error);
       toast({
@@ -106,7 +117,6 @@ const TextEditor = () => {
 
   const handleSuggestionApply = (originalText: string, suggestion: string) => {
     if (!editorRef.current) return;
-    
     const content = editorRef.current.innerHTML;
     editorRef.current.innerHTML = content.replace(originalText, suggestion);
   };
@@ -115,6 +125,13 @@ const TextEditor = () => {
     if (pageIndex >= 0 && pageIndex < pages.length) {
       setCurrentPage(pageIndex);
     }
+  };
+
+  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const updatedPages = [...pages];
+    updatedPages[currentPage].content = e.currentTarget.innerHTML;
+    setPages(updatedPages);
+    console.log('Content updated:', e.currentTarget.innerHTML);
   };
 
   return (
@@ -144,12 +161,9 @@ const TextEditor = () => {
                      text-editor-text text-base leading-relaxed
                      transition-all duration-200"
             suppressContentEditableWarning
+            onInput={handleInput}
+            style={{ direction: 'ltr' }} // Fix for text direction
             dangerouslySetInnerHTML={{ __html: pages[currentPage].content }}
-            onInput={(e) => {
-              const updatedPages = [...pages];
-              updatedPages[currentPage].content = e.currentTarget.innerHTML;
-              setPages(updatedPages);
-            }}
           />
         </div>
         
