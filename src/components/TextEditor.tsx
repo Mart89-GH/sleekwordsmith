@@ -22,7 +22,7 @@ import { Canvas, Image as FabricImage } from 'fabric';
 export const TextEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
-  const fabricCanvasRef = useRef<FabricCanvas | null>(null);
+  const fabricCanvasRef = useRef<Canvas | null>(null);
   const { toast } = useToast();
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [currentContent, setCurrentContent] = useState<string>('');
@@ -48,7 +48,7 @@ export const TextEditor = () => {
     canvasContainerRef.current.appendChild(canvas);
 
     // Initialize Fabric.js canvas
-    fabricCanvasRef.current = new FabricCanvas(canvas, {
+    fabricCanvasRef.current = new Canvas(canvas, {
       width: canvas.width,
       height: canvas.height,
       backgroundColor: 'transparent',
@@ -183,26 +183,19 @@ export const TextEditor = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result && fabricCanvasRef.current) {
-        const options = {
-          crossOrigin: 'anonymous',
-          objectCaching: false
-        };
-        
-        FabricImage.fromURL(e.target.result.toString(), {
-          ...options,
-          callback: (img) => {
-            if (fabricCanvasRef.current && img) {
-              img.scale(0.5);
-              img.set({
-                left: 100,
-                top: 100
-              });
-              fabricCanvasRef.current.add(img);
-              fabricCanvasRef.current.renderAll();
-              console.log('Image added to canvas');
-            }
+        FabricImage.fromURL(e.target.result.toString(), (img) => {
+          if (fabricCanvasRef.current && img) {
+            img.scale(0.5);
+            img.set({
+              left: 100,
+              top: 100,
+              objectCaching: false
+            });
+            fabricCanvasRef.current.add(img);
+            fabricCanvasRef.current.renderAll();
+            console.log('Image added to canvas');
           }
-        });
+        }, { crossOrigin: 'anonymous' });
       }
     };
     reader.readAsDataURL(file);
@@ -221,7 +214,7 @@ export const TextEditor = () => {
 
     if (direction === 'front' && fabricCanvasRef.current) {
       const objects = fabricCanvasRef.current.getObjects();
-      activeObject.moveTo(objects.length);
+      activeObject.moveTo(objects.length - 1);
     } else if (fabricCanvasRef.current) {
       activeObject.moveTo(0);
     }
