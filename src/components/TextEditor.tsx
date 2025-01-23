@@ -17,11 +17,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useConversation } from '@11labs/react';
-import { Canvas as FabricCanvas } from 'fabric';
+import { Canvas as FabricCanvas, Image as FabricImage } from 'fabric';
 
 export const TextEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<FabricCanvas | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fabricCanvasRef = useRef<FabricCanvas | null>(null);
   const { toast } = useToast();
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [currentContent, setCurrentContent] = useState<string>('');
@@ -40,19 +41,25 @@ export const TextEditor = () => {
   useEffect(() => {
     if (!editorRef.current) return;
 
+    // Create a canvas element
+    const canvas = document.createElement('canvas');
+    canvas.width = editorRef.current.offsetWidth;
+    canvas.height = editorRef.current.offsetHeight;
+    editorRef.current.appendChild(canvas);
+
     // Initialize Fabric.js canvas
-    canvasRef.current = new FabricCanvas(editorRef.current, {
-      width: editorRef.current.offsetWidth,
-      height: editorRef.current.offsetHeight,
+    fabricCanvasRef.current = new FabricCanvas(canvas, {
+      width: canvas.width,
+      height: canvas.height,
       backgroundColor: 'transparent',
     });
 
     return () => {
-      canvasRef.current?.dispose();
+      fabricCanvasRef.current?.dispose();
+      canvas.remove();
     };
   }, []);
 
-  // Save version every 30 seconds if content changed
   useEffect(() => {
     const saveInterval = setInterval(() => {
       if (editorRef.current && editorRef.current.innerHTML !== currentContent) {
@@ -152,7 +159,6 @@ export const TextEditor = () => {
         return;
       }
 
-      // Handle standard formatting commands
       if (value) {
         document.execCommand(command, false, value);
       } else {
@@ -173,22 +179,20 @@ export const TextEditor = () => {
   const handleImageUpload = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      if (e.target?.result && canvasRef.current) {
-        const img = document.createElement('img');
-        img.src = e.target.result as string;
-        img.onload = () => {
-          const fabricImage = new Image();
-          fabricImage.src = e.target.result as string;
-          canvasRef.current?.add(fabricImage);
-          canvasRef.current?.renderAll();
-        };
+      if (e.target?.result && fabricCanvasRef.current) {
+        FabricImage.fromURL(e.target.result as string, (img) => {
+          img.scaleToWidth(200); // Set a default width
+          fabricCanvasRef.current?.add(img);
+          fabricCanvasRef.current?.renderAll();
+          console.log('Image added to canvas');
+        });
       }
     };
     reader.readAsDataURL(file);
   };
 
   const handleImageLayerChange = (direction: 'front' | 'back') => {
-    const activeObject = canvasRef.current?.getActiveObject();
+    const activeObject = fabricCanvasRef.current?.getActiveObject();
     if (!activeObject) {
       toast({
         title: "No Image Selected",
@@ -199,15 +203,15 @@ export const TextEditor = () => {
     }
 
     if (direction === 'front') {
-      activeObject.bringToFront();
+      activeObject.bringToFront?.();
     } else {
-      activeObject.sendToBack();
+      activeObject.sendToBack?.();
     }
-    canvasRef.current?.renderAll();
+    fabricCanvasRef.current?.renderAll();
   };
 
   const handleImageWrap = (wrap: 'inline' | 'float') => {
-    const activeObject = canvasRef.current?.getActiveObject();
+    const activeObject = fabricCanvasRef.current?.getActiveObject();
     if (!activeObject) {
       toast({
         title: "No Image Selected",
@@ -217,12 +221,9 @@ export const TextEditor = () => {
       return;
     }
 
-    if (wrap === 'inline') {
-      activeObject.set('wrap', 'inline');
-    } else {
-      activeObject.set('wrap', 'float');
-    }
-    canvasRef.current?.renderAll();
+    // Set the wrapping mode as a custom property
+    activeObject.set('wrap', wrap);
+    fabricCanvasRef.current?.renderAll();
   };
 
   const handleCreateTable = (rows: number, cols: number) => {
@@ -252,9 +253,21 @@ export const TextEditor = () => {
   };
 
   const handleCreateChart = (data: any[]) => {
-    // Implementation for chart creation will go here
-    // This will be handled by the TableManager component
     console.log('Creating chart with data:', data);
+  };
+
+  const handleSuggestionApply = (originalText: string, suggestion: string) => {
+    if (!editorRef.current) return;
+    
+    const content = editorRef.current.innerHTML;
+    const newContent = content.replace(originalText, suggestion);
+    editorRef.current.innerHTML = newContent;
+    setCurrentContent(newContent);
+    
+    toast({
+      title: "Success",
+      description: "Suggestion applied successfully",
+    });
   };
 
   const formatDate = (date: Date) => {
