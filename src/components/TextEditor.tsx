@@ -41,7 +41,6 @@ export const TextEditor = () => {
   useEffect(() => {
     if (!canvasContainerRef.current) return;
 
-    // Create a canvas element
     const canvas = document.createElement('canvas');
     canvas.width = 800; // Set fixed width
     canvas.height = 600; // Set fixed height
@@ -184,24 +183,17 @@ export const TextEditor = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result && fabricCanvasRef.current) {
-        FabricImage.fromURL(e.target.result.toString(), {
-          left: 100,
-          top: 100,
-          scaleX: 0.5,
-          scaleY: 0.5,
-        }).then(img => {
-          if (fabricCanvasRef.current) {
+        FabricImage.fromURL(e.target.result.toString(), (img) => {
+          if (fabricCanvasRef.current && img) {
+            img.scaleToWidth(200);
+            img.set({
+              top: 100,
+              left: 100,
+            });
             fabricCanvasRef.current.add(img);
             fabricCanvasRef.current.renderAll();
             console.log('Image added to canvas');
           }
-        }).catch(err => {
-          console.error('Error loading image:', err);
-          toast({
-            title: "Error",
-            description: "Failed to load image",
-            variant: "destructive",
-          });
         });
       }
     };
@@ -220,9 +212,9 @@ export const TextEditor = () => {
     }
 
     if (direction === 'front') {
-      activeObject.bringToFront?.();
+      activeObject.moveTo(fabricCanvasRef.current?.size() ?? 0);
     } else {
-      activeObject.sendToBack?.();
+      activeObject.moveTo(0);
     }
     fabricCanvasRef.current?.renderAll();
     console.log('Image layer changed:', direction);
