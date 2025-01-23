@@ -107,17 +107,29 @@ export const TextEditor = () => {
         if (isRecording) {
           await conversation.endSession();
           setIsRecording(false);
+          toast({
+            title: "Dictation Ended",
+            description: `Dictation in ${language === 'en' ? 'English' : 'Spanish'} has ended`,
+          });
         } else {
           await conversation.startSession({
-            agentId: "default", // Replace with your actual agent ID
+            agentId: "default",
           });
           setIsRecording(true);
+          toast({
+            title: "Dictation Started",
+            description: `Dictation in ${language === 'en' ? 'English' : 'Spanish'} has started`,
+          });
         }
         return;
       }
 
       if (command === 'setLanguage') {
         setLanguage(value as 'en' | 'es');
+        toast({
+          title: "Language Changed",
+          description: `Dictation language set to ${value === 'en' ? 'English' : 'Spanish'}`,
+        });
         return;
       }
 
@@ -171,6 +183,7 @@ export const TextEditor = () => {
               "text-editor-text text-base leading-relaxed",
               "transition-all duration-200"
             )}
+            style={{ direction: 'ltr', unicodeBidi: 'plaintext' }}
             suppressContentEditableWarning
             onInput={(e) => setCurrentContent(e.currentTarget.innerHTML)}
           />

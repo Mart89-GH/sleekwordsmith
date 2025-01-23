@@ -46,6 +46,10 @@ const Comments: React.FC<CommentsProps> = ({ onSuggestionApply }) => {
 
     setComments([...comments, comment]);
     setNewComment('');
+    toast({
+      title: "Success",
+      description: "Comment added successfully",
+    });
   };
 
   const applySuggestion = (comment: Comment) => {
