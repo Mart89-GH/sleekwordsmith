@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useConversation } from '@11labs/react';
-import { Canvas as FabricCanvas, Image as FabricImage } from 'fabric';
+import { Canvas, Image as FabricImage } from 'fabric';
 
 export const TextEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -183,19 +183,26 @@ export const TextEditor = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result && fabricCanvasRef.current) {
-        FabricImage.fromURL(e.target.result.toString(), (img) => {
-          if (fabricCanvasRef.current && img) {
-            img.scale(0.5);
-            img.set({
-              left: 100,
-              top: 100,
-              objectCaching: false
-            });
-            fabricCanvasRef.current.add(img);
-            fabricCanvasRef.current.renderAll();
-            console.log('Image added to canvas');
+        const options = {
+          crossOrigin: 'anonymous',
+          objectCaching: false
+        };
+        
+        FabricImage.fromURL(e.target.result.toString(), {
+          ...options,
+          callback: (img) => {
+            if (fabricCanvasRef.current && img) {
+              img.scale(0.5);
+              img.set({
+                left: 100,
+                top: 100
+              });
+              fabricCanvasRef.current.add(img);
+              fabricCanvasRef.current.renderAll();
+              console.log('Image added to canvas');
+            }
           }
-        }, { crossOrigin: 'anonymous' });
+        });
       }
     };
     reader.readAsDataURL(file);
@@ -213,11 +220,10 @@ export const TextEditor = () => {
     }
 
     if (direction === 'front' && fabricCanvasRef.current) {
-      fabricCanvasRef.current.setActiveObject(activeObject);
-      fabricCanvasRef.current.bringToFront(activeObject);
+      const objects = fabricCanvasRef.current.getObjects();
+      activeObject.moveTo(objects.length);
     } else if (fabricCanvasRef.current) {
-      fabricCanvasRef.current.setActiveObject(activeObject);
-      fabricCanvasRef.current.sendToBack(activeObject);
+      activeObject.moveTo(0);
     }
     
     fabricCanvasRef.current?.renderAll();
