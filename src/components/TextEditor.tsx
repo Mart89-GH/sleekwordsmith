@@ -184,12 +184,15 @@ export const TextEditor = () => {
     reader.onload = (e) => {
       if (e.target?.result && fabricCanvasRef.current) {
         FabricImage.fromURL(e.target.result.toString(), {
-          left: 100,
-          top: 100,
+          crossOrigin: 'anonymous',
           scaleX: 0.5,
-          scaleY: 0.5,
+          scaleY: 0.5
         }).then(img => {
           if (fabricCanvasRef.current && img) {
+            img.set({
+              left: 100,
+              top: 100
+            });
             fabricCanvasRef.current.add(img);
             fabricCanvasRef.current.renderAll();
             console.log('Image added to canvas');
@@ -219,9 +222,9 @@ export const TextEditor = () => {
     }
 
     if (direction === 'front') {
-      fabricCanvasRef.current?.bringToFront(activeObject);
+      activeObject.bringToFront();
     } else {
-      fabricCanvasRef.current?.sendToBack(activeObject);
+      activeObject.sendToBack();
     }
     fabricCanvasRef.current?.renderAll();
     console.log('Image layer changed:', direction);
