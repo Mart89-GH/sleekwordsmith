@@ -212,12 +212,14 @@ export const TextEditor = () => {
       return;
     }
 
-    if (direction === 'front') {
-      const objects = fabricCanvasRef.current?.getObjects() || [];
-      activeObject.moveTo(objects.length - 1);
-    } else {
-      activeObject.moveTo(0);
+    if (direction === 'front' && fabricCanvasRef.current) {
+      fabricCanvasRef.current.setActiveObject(activeObject);
+      fabricCanvasRef.current.bringToFront(activeObject);
+    } else if (fabricCanvasRef.current) {
+      fabricCanvasRef.current.setActiveObject(activeObject);
+      fabricCanvasRef.current.sendToBack(activeObject);
     }
+    
     fabricCanvasRef.current?.renderAll();
     console.log('Image layer changed:', direction);
   };
