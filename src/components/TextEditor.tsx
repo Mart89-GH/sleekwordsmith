@@ -183,12 +183,9 @@ export const TextEditor = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result && fabricCanvasRef.current) {
-        FabricImage.fromURL(e.target.result.toString(), {
-          crossOrigin: 'anonymous',
-          scaleX: 0.5,
-          scaleY: 0.5
-        }).then(img => {
+        FabricImage.fromURL(e.target.result.toString(), (img) => {
           if (fabricCanvasRef.current && img) {
+            img.scale(0.5);
             img.set({
               left: 100,
               top: 100
@@ -197,14 +194,7 @@ export const TextEditor = () => {
             fabricCanvasRef.current.renderAll();
             console.log('Image added to canvas');
           }
-        }).catch(err => {
-          console.error('Error loading image:', err);
-          toast({
-            title: "Error",
-            description: "Failed to load image",
-            variant: "destructive",
-          });
-        });
+        }, { crossOrigin: 'anonymous' });
       }
     };
     reader.readAsDataURL(file);
@@ -222,9 +212,9 @@ export const TextEditor = () => {
     }
 
     if (direction === 'front') {
-      activeObject.bringToFront();
+      activeObject.moveTo(fabricCanvasRef.current!.getObjects().length - 1);
     } else {
-      activeObject.sendToBack();
+      activeObject.moveTo(0);
     }
     fabricCanvasRef.current?.renderAll();
     console.log('Image layer changed:', direction);
