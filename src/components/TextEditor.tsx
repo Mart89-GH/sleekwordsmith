@@ -21,7 +21,7 @@ import { Canvas as FabricCanvas, Image as FabricImage } from 'fabric';
 
 export const TextEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
   const fabricCanvasRef = useRef<FabricCanvas | null>(null);
   const { toast } = useToast();
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
@@ -39,13 +39,14 @@ export const TextEditor = () => {
   });
 
   useEffect(() => {
-    if (!editorRef.current) return;
+    if (!canvasContainerRef.current) return;
 
     // Create a canvas element
     const canvas = document.createElement('canvas');
-    canvas.width = editorRef.current.offsetWidth;
-    canvas.height = editorRef.current.offsetHeight;
-    editorRef.current.appendChild(canvas);
+    canvas.width = 800; // Set fixed width
+    canvas.height = 600; // Set fixed height
+    canvasContainerRef.current.innerHTML = ''; // Clear previous content
+    canvasContainerRef.current.appendChild(canvas);
 
     // Initialize Fabric.js canvas
     fabricCanvasRef.current = new FabricCanvas(canvas, {
@@ -54,9 +55,12 @@ export const TextEditor = () => {
       backgroundColor: 'transparent',
     });
 
+    console.log('Canvas initialized:', fabricCanvasRef.current);
+
     return () => {
-      fabricCanvasRef.current?.dispose();
-      canvas.remove();
+      if (fabricCanvasRef.current) {
+        fabricCanvasRef.current.dispose();
+      }
     };
   }, []);
 
@@ -180,11 +184,24 @@ export const TextEditor = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result && fabricCanvasRef.current) {
-        FabricImage.fromURL(e.target.result as string, (img) => {
-          img.scaleToWidth(200); // Set a default width
-          fabricCanvasRef.current?.add(img);
-          fabricCanvasRef.current?.renderAll();
-          console.log('Image added to canvas');
+        FabricImage.fromURL(e.target.result.toString(), {
+          left: 100,
+          top: 100,
+          scaleX: 0.5,
+          scaleY: 0.5,
+        }).then(img => {
+          if (fabricCanvasRef.current) {
+            fabricCanvasRef.current.add(img);
+            fabricCanvasRef.current.renderAll();
+            console.log('Image added to canvas');
+          }
+        }).catch(err => {
+          console.error('Error loading image:', err);
+          toast({
+            title: "Error",
+            description: "Failed to load image",
+            variant: "destructive",
+          });
         });
       }
     };
@@ -208,6 +225,7 @@ export const TextEditor = () => {
       activeObject.sendToBack?.();
     }
     fabricCanvasRef.current?.renderAll();
+    console.log('Image layer changed:', direction);
   };
 
   const handleImageWrap = (wrap: 'inline' | 'float') => {
@@ -224,6 +242,7 @@ export const TextEditor = () => {
     // Set the wrapping mode as a custom property
     activeObject.set('wrap', wrap);
     fabricCanvasRef.current?.renderAll();
+    console.log('Image wrap mode changed:', wrap);
   };
 
   const handleCreateTable = (rows: number, cols: number) => {
@@ -309,6 +328,7 @@ export const TextEditor = () => {
             suppressContentEditableWarning
             onInput={(e) => setCurrentContent(e.currentTarget.innerHTML)}
           />
+          <div ref={canvasContainerRef} className="mt-4" />
         </div>
         
         {showComments && (
