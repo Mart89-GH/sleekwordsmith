@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import EditorToolbar from './EditorToolbar';
 import Comments from './Comments';
+import ImageManager from './ImageManager';
+import TableManager from './TableManager';
 import { cn } from '@/lib/utils';
 import { useToast } from "@/components/ui/use-toast";
 import { DocumentVersion, generatePDF, exportToWord } from '../utils/documentUtils';
@@ -15,9 +17,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useConversation } from '@11labs/react';
+import { Canvas as FabricCanvas } from 'fabric';
 
 export const TextEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<FabricCanvas | null>(null);
   const { toast } = useToast();
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [currentContent, setCurrentContent] = useState<string>('');
@@ -34,7 +38,22 @@ export const TextEditor = () => {
   });
 
   useEffect(() => {
-    // Save version every 30 seconds if content changed
+    if (!editorRef.current) return;
+
+    // Initialize Fabric.js canvas
+    canvasRef.current = new FabricCanvas(editorRef.current, {
+      width: editorRef.current.offsetWidth,
+      height: editorRef.current.offsetHeight,
+      backgroundColor: 'transparent',
+    });
+
+    return () => {
+      canvasRef.current?.dispose();
+    };
+  }, []);
+
+  // Save version every 30 seconds if content changed
+  useEffect(() => {
     const saveInterval = setInterval(() => {
       if (editorRef.current && editorRef.current.innerHTML !== currentContent) {
         const newVersion: DocumentVersion = {
@@ -151,12 +170,91 @@ export const TextEditor = () => {
     }
   };
 
-  const handleSuggestionApply = (originalText: string, suggestion: string) => {
-    if (!editorRef.current) return;
+  const handleImageUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result && canvasRef.current) {
+        const img = document.createElement('img');
+        img.src = e.target.result as string;
+        img.onload = () => {
+          const fabricImage = new Image();
+          fabricImage.src = e.target.result as string;
+          canvasRef.current?.add(fabricImage);
+          canvasRef.current?.renderAll();
+        };
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageLayerChange = (direction: 'front' | 'back') => {
+    const activeObject = canvasRef.current?.getActiveObject();
+    if (!activeObject) {
+      toast({
+        title: "No Image Selected",
+        description: "Please select an image to change its layer",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (direction === 'front') {
+      activeObject.bringToFront();
+    } else {
+      activeObject.sendToBack();
+    }
+    canvasRef.current?.renderAll();
+  };
+
+  const handleImageWrap = (wrap: 'inline' | 'float') => {
+    const activeObject = canvasRef.current?.getActiveObject();
+    if (!activeObject) {
+      toast({
+        title: "No Image Selected",
+        description: "Please select an image to change its wrap setting",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (wrap === 'inline') {
+      activeObject.set('wrap', 'inline');
+    } else {
+      activeObject.set('wrap', 'float');
+    }
+    canvasRef.current?.renderAll();
+  };
+
+  const handleCreateTable = (rows: number, cols: number) => {
+    const table = document.createElement('table');
+    table.className = 'border-collapse border border-gray-300 my-4';
     
-    const content = editorRef.current.innerHTML;
-    editorRef.current.innerHTML = content.replace(originalText, suggestion);
-    setCurrentContent(editorRef.current.innerHTML);
+    for (let i = 0; i < rows; i++) {
+      const row = table.insertRow();
+      for (let j = 0; j < cols; j++) {
+        const cell = row.insertCell();
+        cell.className = 'border border-gray-300 p-2';
+        cell.contentEditable = 'true';
+        cell.textContent = `Cell ${i + 1}-${j + 1}`;
+      }
+    }
+
+    if (editorRef.current) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(table);
+      } else {
+        editorRef.current.appendChild(table);
+      }
+    }
+  };
+
+  const handleCreateChart = (data: any[]) => {
+    // Implementation for chart creation will go here
+    // This will be handled by the TableManager component
+    console.log('Creating chart with data:', data);
   };
 
   const formatDate = (date: Date) => {
@@ -174,11 +272,22 @@ export const TextEditor = () => {
       <EditorToolbar onFormat={handleFormat} />
       <div className="max-w-6xl mx-auto p-8 flex gap-4">
         <div className="flex-1">
+          <div className="space-y-4">
+            <ImageManager
+              onImageUpload={handleImageUpload}
+              onImageLayerChange={handleImageLayerChange}
+              onImageWrap={handleImageWrap}
+            />
+            <TableManager
+              onCreateTable={handleCreateTable}
+              onCreateChart={handleCreateChart}
+            />
+          </div>
           <div
             ref={editorRef}
             contentEditable
             className={cn(
-              "min-h-[842px] w-full p-8 bg-white rounded-lg shadow-sm",
+              "min-h-[842px] w-full p-8 bg-white rounded-lg shadow-sm mt-4",
               "focus:outline-none focus:ring-2 focus:ring-editor-primary/20",
               "text-editor-text text-base leading-relaxed",
               "transition-all duration-200"
