@@ -128,10 +128,11 @@ export const TextEditor = () => {
             fabricCanvasRef.current.add(img);
             if (fabricCanvasRef.current.getObjects) {
               const objects = fabricCanvasRef.current.getObjects();
-              img.moveTo(objects.length - 1);
+              const index = objects.length - 1;
+              fabricCanvasRef.current.setActiveObject(img);
+              fabricCanvasRef.current.renderAll();
+              console.log('Image added to canvas at index:', index);
             }
-            fabricCanvasRef.current.renderAll();
-            console.log('Image added to canvas');
           }
         }).catch(error => {
           console.error('Error loading image:', error);
@@ -142,12 +143,31 @@ export const TextEditor = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleChartCreate = (data: any[]) => {
+  const handleImageLayerChange = (direction: 'front' | 'back') => {
+    const activeObject = fabricCanvasRef.current?.getActiveObject();
+    if (!activeObject) {
+      toast.error('No image selected');
+      return;
+    }
+
+    const objects = fabricCanvasRef.current?.getObjects() || [];
+    const currentIndex = objects.indexOf(activeObject);
+    const newIndex = direction === 'front' ? objects.length - 1 : 0;
+
+    if (currentIndex !== newIndex) {
+      objects.splice(currentIndex, 1);
+      objects.splice(newIndex, 0, activeObject);
+      fabricCanvasRef.current?.renderAll();
+      console.log(`Object moved to ${direction}`);
+    }
+  };
+
+  const handleChartCreate = (chartElement: JSX.Element) => {
     if (!editorRef.current) return;
     
     const chartContainer = document.createElement('div');
     const root = createRoot(chartContainer);
-    root.render(<ChartCreator onChartCreate={() => {}} />);
+    root.render(chartElement);
     
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
@@ -171,20 +191,7 @@ export const TextEditor = () => {
           <div className="space-y-4">
             <ImageManager
               onImageUpload={handleImageUpload}
-              onImageLayerChange={(direction) => {
-                const activeObject = fabricCanvasRef.current?.getActiveObject();
-                if (!activeObject) {
-                  toast.error('No image selected');
-                  return;
-                }
-                if (direction === 'front' && fabricCanvasRef.current?.getObjects) {
-                  const objects = fabricCanvasRef.current.getObjects();
-                  activeObject.moveTo(objects.length - 1);
-                } else if (fabricCanvasRef.current?.getObjects) {
-                  activeObject.moveTo(0);
-                }
-                fabricCanvasRef.current?.renderAll();
-              }}
+              onImageLayerChange={handleImageLayerChange}
               onImageWrap={(wrap) => {
                 const activeObject = fabricCanvasRef.current?.getActiveObject();
                 if (!activeObject) {
