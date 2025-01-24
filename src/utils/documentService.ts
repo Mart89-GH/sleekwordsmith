@@ -12,11 +12,18 @@ export interface Document {
 
 export const saveDocument = async (content: string, title: string = 'Untitled Document') => {
   try {
+    const user = await supabase.auth.getUser();
+    if (!user.data.user) {
+      throw new Error('User not authenticated');
+    }
+
     const { data: document, error } = await supabase
       .from('documents')
-      .insert([
-        { content, title }
-      ])
+      .insert({
+        content,
+        title,
+        user_id: user.data.user.id
+      })
       .select()
       .single();
 

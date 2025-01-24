@@ -6,16 +6,16 @@ import ImageManager from './ImageManager';
 import TableManager from './TableManager';
 import ChartCreator from './ChartCreator';
 import { cn } from '@/lib/utils';
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { DocumentVersion, generatePDF, exportToWord } from '../utils/documentUtils';
 import { Canvas, Image as FabricImage } from 'fabric';
 import { useConversation } from '@11labs/react';
+import { createRoot } from 'react-dom/client';
 
 export const TextEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const fabricCanvasRef = useRef<Canvas | null>(null);
-  const { toast } = useToast();
   const [currentContent, setCurrentContent] = useState<string>('');
   const [showComments, setShowComments] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -59,13 +59,13 @@ export const TextEditor = () => {
       switch (command) {
         case 'exportPDF':
           await generatePDF(editorRef.current);
-          toast({ title: "Success", description: "PDF exported successfully" });
+          toast.success("PDF exported successfully");
           break;
         
         case 'exportWord':
           if (editorRef.current) {
             exportToWord(editorRef.current.innerHTML);
-            toast({ title: "Success", description: "Word document exported successfully" });
+            toast.success("Word document exported successfully");
           }
           break;
 
@@ -81,26 +81,17 @@ export const TextEditor = () => {
           if (isRecording) {
             await conversation.endSession();
             setIsRecording(false);
-            toast({
-              title: "Dictation Ended",
-              description: `Dictation in ${language === 'en' ? 'English' : 'Spanish'} has ended`,
-            });
+            toast.success(`Dictation in ${language === 'en' ? 'English' : 'Spanish'} has ended`);
           } else {
             await conversation.startSession({ agentId: "default" });
             setIsRecording(true);
-            toast({
-              title: "Dictation Started",
-              description: `Dictation in ${language === 'en' ? 'English' : 'Spanish'} has started`,
-            });
+            toast.success(`Dictation in ${language === 'en' ? 'English' : 'Spanish'} has started`);
           }
           break;
 
         case 'setLanguage':
           setLanguage(value as 'en' | 'es');
-          toast({
-            title: "Language Changed",
-            description: `Dictation language set to ${value === 'en' ? 'English' : 'Spanish'}`,
-          });
+          toast.success(`Dictation language set to ${value === 'en' ? 'English' : 'Spanish'}`);
           break;
 
         default:
@@ -113,11 +104,7 @@ export const TextEditor = () => {
       }
     } catch (error) {
       console.error('Error executing command:', command, error);
-      toast({
-        title: "Error",
-        description: "There was an error executing the command",
-        variant: "destructive",
-      });
+      toast.error("There was an error executing the command");
     }
   };
 
@@ -139,6 +126,10 @@ export const TextEditor = () => {
               objectCaching: false,
             });
             fabricCanvasRef.current.add(img);
+            if (fabricCanvasRef.current.getObjects) {
+              const objects = fabricCanvasRef.current.getObjects();
+              img.moveTo(objects.length - 1);
+            }
             fabricCanvasRef.current.renderAll();
             console.log('Image added to canvas');
           }
@@ -151,14 +142,20 @@ export const TextEditor = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleChartCreate = (chartElement: JSX.Element) => {
+  const handleChartCreate = (data: any[]) => {
+    if (!editorRef.current) return;
+    
+    const chartContainer = document.createElement('div');
+    const root = createRoot(chartContainer);
+    root.render(<ChartCreator onChartCreate={() => {}} />);
+    
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
-      const chartContainer = document.createElement('div');
-      ReactDOM.render(chartElement, chartContainer);
       range.deleteContents();
       range.insertNode(chartContainer);
+    } else {
+      editorRef.current.appendChild(chartContainer);
     }
   };
 
@@ -180,10 +177,11 @@ export const TextEditor = () => {
                   toast.error('No image selected');
                   return;
                 }
-                if (direction === 'front') {
-                  fabricCanvasRef.current?.bringToFront(activeObject);
-                } else {
-                  fabricCanvasRef.current?.sendToBack(activeObject);
+                if (direction === 'front' && fabricCanvasRef.current?.getObjects) {
+                  const objects = fabricCanvasRef.current.getObjects();
+                  activeObject.moveTo(objects.length - 1);
+                } else if (fabricCanvasRef.current?.getObjects) {
+                  activeObject.moveTo(0);
                 }
                 fabricCanvasRef.current?.renderAll();
               }}
@@ -225,7 +223,6 @@ export const TextEditor = () => {
               }}
               onCreateChart={handleChartCreate}
             />
-            <ChartCreator onChartCreate={handleChartCreate} />
           </div>
           <div
             ref={editorRef}
@@ -252,10 +249,7 @@ export const TextEditor = () => {
             editorRef.current.innerHTML = newContent;
             setCurrentContent(newContent);
             
-            toast({
-              title: "Success",
-              description: "Suggestion applied successfully",
-            });
+            toast.success("Suggestion applied successfully");
           }} />
         )}
       </div>
