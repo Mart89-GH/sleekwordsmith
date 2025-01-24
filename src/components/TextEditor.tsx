@@ -162,21 +162,23 @@ export const TextEditor = () => {
     }
   };
 
-  const handleChartCreate = (chartElement: JSX.Element) => {
+  const handleChartCreate = (data: any[]) => {
     if (!editorRef.current) return;
     
     const chartContainer = document.createElement('div');
     const root = createRoot(chartContainer);
-    root.render(chartElement);
-    
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      range.deleteContents();
-      range.insertNode(chartContainer);
-    } else {
-      editorRef.current.appendChild(chartContainer);
-    }
+    root.render(<ChartCreator onChartCreate={(chartElement) => {
+      if (editorRef.current) {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(chartContainer);
+        } else {
+          editorRef.current.appendChild(chartContainer);
+        }
+      }
+    }} />);
   };
 
   return (
