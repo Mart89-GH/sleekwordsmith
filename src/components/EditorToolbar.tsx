@@ -74,6 +74,27 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
     }
   };
 
+  const handleAdvancedFeature = (feature: string) => {
+    switch (feature) {
+      case "Clear Formatting":
+        onFormat('removeFormat');
+        toast({
+          title: "Formatting Cleared",
+          description: "All text formatting has been removed",
+        });
+        break;
+      case "Help":
+        window.open('https://docs.example.com/editor-help', '_blank');
+        toast({
+          title: "Help",
+          description: "Opening help documentation in a new tab",
+        });
+        break;
+      default:
+        console.log(`Advanced feature ${feature} not implemented yet`);
+    }
+  };
+
   const fontSizes = ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36', '48', '72'];
   const fontFamilies = ['Arial', 'Times New Roman', 'Calibri', 'Helvetica', 'Georgia', 'Verdana', 'Tahoma'];
 
