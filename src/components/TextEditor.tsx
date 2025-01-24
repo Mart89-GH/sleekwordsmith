@@ -184,25 +184,24 @@ export const TextEditor = () => {
     reader.onload = (e) => {
       if (e.target?.result && fabricCanvasRef.current) {
         const imgUrl = e.target.result.toString();
-        const options = {
-          left: 100,
-          top: 100,
-          scaleX: 0.5,
-          scaleY: 0.5,
-          objectCaching: false,
-          crossOrigin: 'anonymous'
-        };
-
-        new FabricImage.fromURL(imgUrl, options, (error, img) => {
-          if (error) {
-            console.error('Error loading image:', error);
-            return;
-          }
+        
+        FabricImage.fromURL(imgUrl, {
+          crossOrigin: 'anonymous',
+        }).then(img => {
           if (fabricCanvasRef.current && img) {
+            img.set({
+              left: 100,
+              top: 100,
+              scaleX: 0.5,
+              scaleY: 0.5,
+              objectCaching: false,
+            });
             fabricCanvasRef.current.add(img);
             fabricCanvasRef.current.renderAll();
             console.log('Image added to canvas');
           }
+        }).catch(error => {
+          console.error('Error loading image:', error);
         });
       }
     };
@@ -221,7 +220,6 @@ export const TextEditor = () => {
     }
 
     if (direction === 'front' && fabricCanvasRef.current) {
-      const objects = fabricCanvasRef.current.getObjects();
       fabricCanvasRef.current.bringObjectToFront(activeObject);
     } else if (fabricCanvasRef.current) {
       fabricCanvasRef.current.sendObjectToBack(activeObject);
