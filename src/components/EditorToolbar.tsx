@@ -6,7 +6,7 @@ import {
   PaintBucket, Grid, MessageSquare, FileText, Image, Table,
   Link, IndentIncrease, IndentDecrease, Superscript, Subscript,
   ArrowUpDown, Strikethrough, Eraser, FileInput, Printer, Download,
-  Share2, Settings, HelpCircle, Languages, Save
+  Share2, Settings, HelpCircle, Languages, Save, BarChart
 } from 'lucide-react';
 import {
   Select,
@@ -23,17 +23,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { saveDocument, saveVersion } from '@/utils/documentService';
 import { cn } from '@/lib/utils';
+import ChartCreator from './ChartCreator';
+import TableManager from './TableManager';
 
 interface EditorToolbarProps {
   onFormat: (command: string, value?: string) => void;
   content: string;
   documentId?: string;
+  onImageUpload: (file: File) => void;
+  onImageLayerChange: (direction: 'front' | 'back') => void;
+  onChartCreate: (chartElement: JSX.Element) => void;
 }
 
-const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat, content, documentId }) => {
+const EditorToolbar: React.FC<EditorToolbarProps> = ({ 
+  onFormat, 
+  content, 
+  documentId,
+  onImageUpload,
+  onImageLayerChange,
+  onChartCreate
+}) => {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -44,7 +57,6 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat, content, docume
         await saveVersion(documentId, content);
       } else {
         const doc = await saveDocument(content);
-        // You might want to update the parent component with the new document ID
       }
       toast({
         title: "Success",
@@ -64,13 +76,6 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat, content, docume
 
   const fontSizes = ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36', '48', '72'];
   const fontFamilies = ['Arial', 'Times New Roman', 'Calibri', 'Helvetica', 'Georgia', 'Verdana', 'Tahoma'];
-
-  const handleAdvancedFeature = (feature: string) => {
-    toast({
-      title: "Coming Soon",
-      description: `${feature} functionality will be available soon`,
-    });
-  };
 
   return (
     <div className="bg-white border-b border-gray-200 p-2 space-y-2 sticky top-0 z-50 shadow-sm">
@@ -259,21 +264,72 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat, content, docume
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => handleAdvancedFeature("Insert Table")}>
-                  <Table className="w-4 h-4 mr-2" />
-                  Table
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleAdvancedFeature("Insert Image")}>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Table className="w-4 h-4 mr-2" />
+                      Table
+                    </DropdownMenuItem>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <TableManager
+                      onCreateTable={(rows, cols) => {
+                        const table = document.createElement('table');
+                        table.className = 'border-collapse border border-gray-300 my-4';
+                        
+                        for (let i = 0; i < rows; i++) {
+                          const row = table.insertRow();
+                          for (let j = 0; j < cols; j++) {
+                            const cell = row.insertCell();
+                            cell.className = 'border border-gray-300 p-2';
+                            cell.contentEditable = 'true';
+                            cell.textContent = `Cell ${i + 1}-${j + 1}`;
+                          }
+                        }
+                        
+                        const selection = window.getSelection();
+                        if (selection && selection.rangeCount > 0) {
+                          const range = selection.getRangeAt(0);
+                          range.deleteContents();
+                          range.insertNode(table);
+                        }
+                      }}
+                      onCreateChart={() => {}}
+                    />
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <BarChart className="w-4 h-4 mr-2" />
+                      Chart
+                    </DropdownMenuItem>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <ChartCreator onChartCreate={onChartCreate} />
+                  </DialogContent>
+                </Dialog>
+
+                <DropdownMenuItem onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file) {
+                      onImageUpload(file);
+                    }
+                  };
+                  input.click();
+                }}>
                   <Image className="w-4 h-4 mr-2" />
                   Image
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleAdvancedFeature("Insert Link")}>
+
+                <DropdownMenuItem onClick={() => onFormat('createLink', window.prompt('Enter URL:') || '')}>
                   <Link className="w-4 h-4 mr-2" />
                   Link
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onFormat('toggleComments')}>
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Comments
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

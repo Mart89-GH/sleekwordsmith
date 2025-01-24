@@ -52,7 +52,7 @@ const ChartCreator: React.FC<ChartCreatorProps> = ({ onChartCreate }) => {
 
   const createChart = () => {
     const chart = (
-      <div className="w-full h-[300px] my-4">
+      <div className="w-full h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -66,7 +66,6 @@ const ChartCreator: React.FC<ChartCreatorProps> = ({ onChartCreate }) => {
       </div>
     );
     onChartCreate(chart);
-    toast.success('Chart created');
   };
 
   return (
@@ -85,20 +84,6 @@ const ChartCreator: React.FC<ChartCreatorProps> = ({ onChartCreate }) => {
         />
         <Button onClick={addDataPoint}>Add Point</Button>
       </div>
-
-      <div className="w-full h-[200px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="value" stroke="#8884d8" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
       <Button onClick={createChart} className="w-full">
         Insert Chart
       </Button>

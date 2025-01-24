@@ -11,6 +11,7 @@ import { DocumentVersion, generatePDF, exportToWord } from '../utils/documentUti
 import { Canvas, Image as FabricImage } from 'fabric';
 import { useConversation } from '@11labs/react';
 import { createRoot } from 'react-dom/client';
+import { supabase } from '@/integrations/supabase/client';
 
 export const TextEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -44,8 +45,6 @@ export const TextEditor = () => {
       height: canvas.height,
       backgroundColor: 'transparent',
     });
-
-    console.log('Canvas initialized:', fabricCanvasRef.current);
 
     return () => {
       if (fabricCanvasRef.current) {
@@ -126,13 +125,8 @@ export const TextEditor = () => {
               objectCaching: false,
             });
             fabricCanvasRef.current.add(img);
-            if (fabricCanvasRef.current.getObjects) {
-              const objects = fabricCanvasRef.current.getObjects();
-              const index = objects.length - 1;
-              fabricCanvasRef.current.setActiveObject(img);
-              fabricCanvasRef.current.renderAll();
-              console.log('Image added to canvas at index:', index);
-            }
+            fabricCanvasRef.current.setActiveObject(img);
+            fabricCanvasRef.current.renderAll();
           }
         }).catch(error => {
           console.error('Error loading image:', error);
@@ -145,40 +139,37 @@ export const TextEditor = () => {
 
   const handleImageLayerChange = (direction: 'front' | 'back') => {
     const activeObject = fabricCanvasRef.current?.getActiveObject();
-    if (!activeObject) {
+    if (!activeObject || !fabricCanvasRef.current) {
       toast.error('No image selected');
       return;
     }
 
-    const objects = fabricCanvasRef.current?.getObjects() || [];
+    const objects = fabricCanvasRef.current.getObjects();
     const currentIndex = objects.indexOf(activeObject);
     const newIndex = direction === 'front' ? objects.length - 1 : 0;
 
     if (currentIndex !== newIndex) {
       objects.splice(currentIndex, 1);
       objects.splice(newIndex, 0, activeObject);
-      fabricCanvasRef.current?.renderAll();
-      console.log(`Object moved to ${direction}`);
+      fabricCanvasRef.current.renderAll();
     }
   };
 
-  const handleChartCreate = (data: any[]) => {
+  const handleChartCreate = (chartElement: JSX.Element) => {
     if (!editorRef.current) return;
     
     const chartContainer = document.createElement('div');
     const root = createRoot(chartContainer);
-    root.render(<ChartCreator onChartCreate={(chartElement) => {
-      if (editorRef.current) {
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          range.deleteContents();
-          range.insertNode(chartContainer);
-        } else {
-          editorRef.current.appendChild(chartContainer);
-        }
-      }
-    }} />);
+    root.render(chartElement);
+    
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(chartContainer);
+    } else {
+      editorRef.current.appendChild(chartContainer);
+    }
   };
 
   return (
@@ -187,52 +178,12 @@ export const TextEditor = () => {
         onFormat={handleFormat} 
         content={currentContent}
         documentId={documentId}
+        onImageUpload={handleImageUpload}
+        onImageLayerChange={handleImageLayerChange}
+        onChartCreate={handleChartCreate}
       />
       <div className="max-w-6xl mx-auto p-8 flex gap-4">
         <div className="flex-1">
-          <div className="space-y-4">
-            <ImageManager
-              onImageUpload={handleImageUpload}
-              onImageLayerChange={handleImageLayerChange}
-              onImageWrap={(wrap) => {
-                const activeObject = fabricCanvasRef.current?.getActiveObject();
-                if (!activeObject) {
-                  toast.error('No image selected');
-                  return;
-                }
-                activeObject.set('wrap', wrap);
-                fabricCanvasRef.current?.renderAll();
-              }}
-            />
-            <TableManager
-              onCreateTable={(rows, cols) => {
-                const table = document.createElement('table');
-                table.className = 'border-collapse border border-gray-300 my-4';
-                
-                for (let i = 0; i < rows; i++) {
-                  const row = table.insertRow();
-                  for (let j = 0; j < cols; j++) {
-                    const cell = row.insertCell();
-                    cell.className = 'border border-gray-300 p-2';
-                    cell.contentEditable = 'true';
-                    cell.textContent = `Cell ${i + 1}-${j + 1}`;
-                  }
-                }
-
-                if (editorRef.current) {
-                  const selection = window.getSelection();
-                  if (selection && selection.rangeCount > 0) {
-                    const range = selection.getRangeAt(0);
-                    range.deleteContents();
-                    range.insertNode(table);
-                  } else {
-                    editorRef.current.appendChild(table);
-                  }
-                }
-              }}
-              onCreateChart={handleChartCreate}
-            />
-          </div>
           <div
             ref={editorRef}
             contentEditable
