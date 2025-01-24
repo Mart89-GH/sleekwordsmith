@@ -4,31 +4,23 @@ import EditorToolbar from './EditorToolbar';
 import Comments from './Comments';
 import ImageManager from './ImageManager';
 import TableManager from './TableManager';
+import ChartCreator from './ChartCreator';
 import { cn } from '@/lib/utils';
 import { useToast } from "@/components/ui/use-toast";
 import { DocumentVersion, generatePDF, exportToWord } from '../utils/documentUtils';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useConversation } from '@11labs/react';
 import { Canvas, Image as FabricImage } from 'fabric';
+import { useConversation } from '@11labs/react';
 
 export const TextEditor = () => {
   const editorRef = useRef<HTMLDivElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const fabricCanvasRef = useRef<Canvas | null>(null);
   const { toast } = useToast();
-  const [versions, setVersions] = useState<DocumentVersion[]>([]);
   const [currentContent, setCurrentContent] = useState<string>('');
   const [showComments, setShowComments] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [language, setLanguage] = useState<'en' | 'es'>('en');
+  const [documentId, setDocumentId] = useState<string>();
 
   const conversation = useConversation({
     overrides: {
@@ -42,12 +34,11 @@ export const TextEditor = () => {
     if (!canvasContainerRef.current) return;
 
     const canvas = document.createElement('canvas');
-    canvas.width = 800; // Set fixed width
-    canvas.height = 600; // Set fixed height
-    canvasContainerRef.current.innerHTML = ''; // Clear previous content
+    canvas.width = 800;
+    canvas.height = 600;
+    canvasContainerRef.current.innerHTML = '';
     canvasContainerRef.current.appendChild(canvas);
 
-    // Initialize Fabric.js canvas
     fabricCanvasRef.current = new Canvas(canvas, {
       width: canvas.width,
       height: canvas.height,
@@ -63,112 +54,63 @@ export const TextEditor = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const saveInterval = setInterval(() => {
-      if (editorRef.current && editorRef.current.innerHTML !== currentContent) {
-        const newVersion: DocumentVersion = {
-          content: editorRef.current.innerHTML,
-          timestamp: new Date(),
-          id: uuidv4(),
-        };
-        setVersions(prev => [newVersion, ...prev]);
-        setCurrentContent(editorRef.current.innerHTML);
-        
-        console.log('Auto-saved version:', newVersion.timestamp);
-      }
-    }, 30000);
-
-    return () => clearInterval(saveInterval);
-  }, [currentContent]);
-
   const handleFormat = async (command: string, value?: string) => {
     try {
-      if (command === 'exportPDF') {
-        generatePDF(editorRef.current)
-          .then(() => {
-            toast({
-              title: "Success",
-              description: "PDF exported successfully",
-            });
-          })
-          .catch(() => {
-            toast({
-              title: "Error",
-              description: "Failed to export PDF",
-              variant: "destructive",
-            });
-          });
-        return;
-      }
+      switch (command) {
+        case 'exportPDF':
+          await generatePDF(editorRef.current);
+          toast({ title: "Success", description: "PDF exported successfully" });
+          break;
+        
+        case 'exportWord':
+          if (editorRef.current) {
+            exportToWord(editorRef.current.innerHTML);
+            toast({ title: "Success", description: "Word document exported successfully" });
+          }
+          break;
 
-      if (command === 'exportWord') {
-        if (editorRef.current) {
-          exportToWord(editorRef.current.innerHTML);
-          toast({
-            title: "Success",
-            description: "Word document exported successfully",
-          });
-        }
-        return;
-      }
+        case 'print':
+          window.print();
+          break;
 
-      if (command === 'restoreVersion') {
-        if (value && editorRef.current) {
-          const version = versions.find(v => v.id === value);
-          if (version) {
-            editorRef.current.innerHTML = version.content;
-            setCurrentContent(version.content);
+        case 'toggleComments':
+          setShowComments(!showComments);
+          break;
+
+        case 'startDictation':
+          if (isRecording) {
+            await conversation.endSession();
+            setIsRecording(false);
             toast({
-              title: "Success",
-              description: "Version restored successfully",
+              title: "Dictation Ended",
+              description: `Dictation in ${language === 'en' ? 'English' : 'Spanish'} has ended`,
+            });
+          } else {
+            await conversation.startSession({ agentId: "default" });
+            setIsRecording(true);
+            toast({
+              title: "Dictation Started",
+              description: `Dictation in ${language === 'en' ? 'English' : 'Spanish'} has started`,
             });
           }
-        }
-        return;
-      }
+          break;
 
-      if (command === 'toggleComments') {
-        setShowComments(!showComments);
-        return;
-      }
-
-      if (command === 'startDictation') {
-        if (isRecording) {
-          await conversation.endSession();
-          setIsRecording(false);
+        case 'setLanguage':
+          setLanguage(value as 'en' | 'es');
           toast({
-            title: "Dictation Ended",
-            description: `Dictation in ${language === 'en' ? 'English' : 'Spanish'} has ended`,
+            title: "Language Changed",
+            description: `Dictation language set to ${value === 'en' ? 'English' : 'Spanish'}`,
           });
-        } else {
-          await conversation.startSession({
-            agentId: "default",
-          });
-          setIsRecording(true);
-          toast({
-            title: "Dictation Started",
-            description: `Dictation in ${language === 'en' ? 'English' : 'Spanish'} has started`,
-          });
-        }
-        return;
-      }
+          break;
 
-      if (command === 'setLanguage') {
-        setLanguage(value as 'en' | 'es');
-        toast({
-          title: "Language Changed",
-          description: `Dictation language set to ${value === 'en' ? 'English' : 'Spanish'}`,
-        });
-        return;
+        default:
+          if (value) {
+            document.execCommand(command, false, value);
+          } else {
+            document.execCommand(command, false);
+          }
+          editorRef.current?.focus();
       }
-
-      if (value) {
-        document.execCommand(command, false, value);
-      } else {
-        document.execCommand(command, false);
-      }
-      
-      editorRef.current?.focus();
     } catch (error) {
       console.error('Error executing command:', command, error);
       toast({
@@ -186,7 +128,7 @@ export const TextEditor = () => {
         const imgUrl = e.target.result.toString();
         
         FabricImage.fromURL(imgUrl, {
-          crossOrigin: 'anonymous',
+          crossOrigin: 'anonymous'
         }).then(img => {
           if (fabricCanvasRef.current && img) {
             img.set({
@@ -202,119 +144,88 @@ export const TextEditor = () => {
           }
         }).catch(error => {
           console.error('Error loading image:', error);
+          toast.error('Failed to load image');
         });
       }
     };
     reader.readAsDataURL(file);
   };
 
-  const handleImageLayerChange = (direction: 'front' | 'back') => {
-    const activeObject = fabricCanvasRef.current?.getActiveObject();
-    if (!activeObject) {
-      toast({
-        title: "No Image Selected",
-        description: "Please select an image to change its layer",
-        variant: "destructive",
-      });
-      return;
+  const handleChartCreate = (chartElement: JSX.Element) => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const chartContainer = document.createElement('div');
+      ReactDOM.render(chartElement, chartContainer);
+      range.deleteContents();
+      range.insertNode(chartContainer);
     }
-
-    if (direction === 'front' && fabricCanvasRef.current) {
-      fabricCanvasRef.current.bringObjectToFront(activeObject);
-    } else if (fabricCanvasRef.current) {
-      fabricCanvasRef.current.sendObjectToBack(activeObject);
-    }
-    
-    fabricCanvasRef.current?.renderAll();
-    console.log('Image layer changed:', direction);
-  };
-
-  const handleImageWrap = (wrap: 'inline' | 'float') => {
-    const activeObject = fabricCanvasRef.current?.getActiveObject();
-    if (!activeObject) {
-      toast({
-        title: "No Image Selected",
-        description: "Please select an image to change its wrap setting",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Set the wrapping mode as a custom property
-    activeObject.set('wrap', wrap);
-    fabricCanvasRef.current?.renderAll();
-    console.log('Image wrap mode changed:', wrap);
-  };
-
-  const handleCreateTable = (rows: number, cols: number) => {
-    const table = document.createElement('table');
-    table.className = 'border-collapse border border-gray-300 my-4';
-    
-    for (let i = 0; i < rows; i++) {
-      const row = table.insertRow();
-      for (let j = 0; j < cols; j++) {
-        const cell = row.insertCell();
-        cell.className = 'border border-gray-300 p-2';
-        cell.contentEditable = 'true';
-        cell.textContent = `Cell ${i + 1}-${j + 1}`;
-      }
-    }
-
-    if (editorRef.current) {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        range.deleteContents();
-        range.insertNode(table);
-      } else {
-        editorRef.current.appendChild(table);
-      }
-    }
-  };
-
-  const handleCreateChart = (data: any[]) => {
-    console.log('Creating chart with data:', data);
-  };
-
-  const handleSuggestionApply = (originalText: string, suggestion: string) => {
-    if (!editorRef.current) return;
-    
-    const content = editorRef.current.innerHTML;
-    const newContent = content.replace(originalText, suggestion);
-    editorRef.current.innerHTML = newContent;
-    setCurrentContent(newContent);
-    
-    toast({
-      title: "Success",
-      description: "Suggestion applied successfully",
-    });
-  };
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date);
   };
 
   return (
     <div className="min-h-screen bg-editor-background">
-      <EditorToolbar onFormat={handleFormat} />
+      <EditorToolbar 
+        onFormat={handleFormat} 
+        content={currentContent}
+        documentId={documentId}
+      />
       <div className="max-w-6xl mx-auto p-8 flex gap-4">
         <div className="flex-1">
           <div className="space-y-4">
             <ImageManager
               onImageUpload={handleImageUpload}
-              onImageLayerChange={handleImageLayerChange}
-              onImageWrap={handleImageWrap}
+              onImageLayerChange={(direction) => {
+                const activeObject = fabricCanvasRef.current?.getActiveObject();
+                if (!activeObject) {
+                  toast.error('No image selected');
+                  return;
+                }
+                if (direction === 'front') {
+                  fabricCanvasRef.current?.bringToFront(activeObject);
+                } else {
+                  fabricCanvasRef.current?.sendToBack(activeObject);
+                }
+                fabricCanvasRef.current?.renderAll();
+              }}
+              onImageWrap={(wrap) => {
+                const activeObject = fabricCanvasRef.current?.getActiveObject();
+                if (!activeObject) {
+                  toast.error('No image selected');
+                  return;
+                }
+                activeObject.set('wrap', wrap);
+                fabricCanvasRef.current?.renderAll();
+              }}
             />
             <TableManager
-              onCreateTable={handleCreateTable}
-              onCreateChart={handleCreateChart}
+              onCreateTable={(rows, cols) => {
+                const table = document.createElement('table');
+                table.className = 'border-collapse border border-gray-300 my-4';
+                
+                for (let i = 0; i < rows; i++) {
+                  const row = table.insertRow();
+                  for (let j = 0; j < cols; j++) {
+                    const cell = row.insertCell();
+                    cell.className = 'border border-gray-300 p-2';
+                    cell.contentEditable = 'true';
+                    cell.textContent = `Cell ${i + 1}-${j + 1}`;
+                  }
+                }
+
+                if (editorRef.current) {
+                  const selection = window.getSelection();
+                  if (selection && selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    range.deleteContents();
+                    range.insertNode(table);
+                  } else {
+                    editorRef.current.appendChild(table);
+                  }
+                }
+              }}
+              onCreateChart={handleChartCreate}
             />
+            <ChartCreator onChartCreate={handleChartCreate} />
           </div>
           <div
             ref={editorRef}
@@ -333,36 +244,20 @@ export const TextEditor = () => {
         </div>
         
         {showComments && (
-          <Comments onSuggestionApply={handleSuggestionApply} />
+          <Comments onSuggestionApply={(originalText, suggestion) => {
+            if (!editorRef.current) return;
+            
+            const content = editorRef.current.innerHTML;
+            const newContent = content.replace(originalText, suggestion);
+            editorRef.current.innerHTML = newContent;
+            setCurrentContent(newContent);
+            
+            toast({
+              title: "Success",
+              description: "Suggestion applied successfully",
+            });
+          }} />
         )}
-        
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" className="fixed right-4 top-20">
-              Version History
-            </Button>
-          </SheetTrigger>
-          <SheetContent>
-            <SheetHeader>
-              <SheetTitle>Document History</SheetTitle>
-            </SheetHeader>
-            <ScrollArea className="h-[calc(100vh-100px)] mt-4">
-              <div className="space-y-4">
-                {versions.map((version) => (
-                  <div
-                    key={version.id}
-                    className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleFormat('restoreVersion', version.id)}
-                  >
-                    <p className="text-sm text-gray-500">
-                      {formatDate(version.timestamp)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          </SheetContent>
-        </Sheet>
       </div>
     </div>
   );

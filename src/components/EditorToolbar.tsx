@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Scissors, Clipboard, Copy, Type, TextQuote, List, ListOrdered,
@@ -6,7 +6,7 @@ import {
   PaintBucket, Grid, MessageSquare, FileText, Image, Table,
   Link, IndentIncrease, IndentDecrease, Superscript, Subscript,
   ArrowUpDown, Strikethrough, Eraser, FileInput, Printer, Download,
-  Share2, Settings, HelpCircle, Languages
+  Share2, Settings, HelpCircle, Languages, Save
 } from 'lucide-react';
 import {
   Select,
@@ -24,14 +24,44 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/use-toast";
+import { saveDocument, saveVersion } from '@/utils/documentService';
 import { cn } from '@/lib/utils';
 
 interface EditorToolbarProps {
   onFormat: (command: string, value?: string) => void;
+  content: string;
+  documentId?: string;
 }
 
-const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
+const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat, content, documentId }) => {
   const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      if (documentId) {
+        await saveVersion(documentId, content);
+      } else {
+        const doc = await saveDocument(content);
+        // You might want to update the parent component with the new document ID
+      }
+      toast({
+        title: "Success",
+        description: "Document saved successfully",
+      });
+    } catch (error) {
+      console.error('Error saving document:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save document",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const fontSizes = ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36', '48', '72'];
   const fontFamilies = ['Arial', 'Times New Roman', 'Calibri', 'Helvetica', 'Georgia', 'Verdana', 'Tahoma'];
 
@@ -55,9 +85,9 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-48">
-              <DropdownMenuItem onClick={() => handleAdvancedFeature("New Document")}>
-                <FileInput className="w-4 h-4 mr-2" />
-                New
+              <DropdownMenuItem onClick={handleSave}>
+                <Save className="w-4 h-4 mr-2" />
+                Save
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onFormat('exportPDF')}>
                 <Download className="w-4 h-4 mr-2" />
@@ -67,13 +97,9 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ onFormat }) => {
                 <FileText className="w-4 h-4 mr-2" />
                 Export as Word
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleAdvancedFeature("Print")}>
+              <DropdownMenuItem onClick={() => onFormat('print')}>
                 <Printer className="w-4 h-4 mr-2" />
                 Print
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleAdvancedFeature("Share")}>
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

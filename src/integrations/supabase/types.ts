@@ -9,7 +9,97 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      document_versions: {
+        Row: {
+          content: string
+          created_at: string | null
+          document_id: string | null
+          id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          id: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      files: {
+        Row: {
+          created_at: string | null
+          document_id: string | null
+          file_path: string
+          file_type: string
+          filename: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_id?: string | null
+          file_path: string
+          file_type: string
+          filename: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string | null
+          file_path?: string
+          file_type?: string
+          filename?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
