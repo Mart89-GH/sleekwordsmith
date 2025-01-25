@@ -9,24 +9,87 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      document_versions: {
+      document_comments: {
         Row: {
           content: string
           created_at: string | null
           document_id: string | null
           id: string
+          parent_comment_id: string | null
+          position: Json | null
+          resolved: boolean | null
+          updated_at: string | null
+          user_id: string
         }
         Insert: {
           content: string
           created_at?: string | null
           document_id?: string | null
           id?: string
+          parent_comment_id?: string | null
+          position?: Json | null
+          resolved?: boolean | null
+          updated_at?: string | null
+          user_id: string
         }
         Update: {
           content?: string
           created_at?: string | null
           document_id?: string | null
           id?: string
+          parent_comment_id?: string | null
+          position?: Json | null
+          resolved?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_comments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "document_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_versions: {
+        Row: {
+          content: string
+          created_at: string | null
+          document_id: string | null
+          id: string
+          is_major_version: boolean | null
+          version_description: string | null
+          version_name: string | null
+          version_number: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+          is_major_version?: boolean | null
+          version_description?: string | null
+          version_name?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+          is_major_version?: boolean | null
+          version_description?: string | null
+          version_name?: string | null
+          version_number?: number | null
         }
         Relationships: [
           {

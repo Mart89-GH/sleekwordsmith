@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import EditorToolbar from './EditorToolbar';
 import Comments from './Comments';
+import VersionControl from './VersionControl';
 import ImageManager from './ImageManager';
 import TableManager from './TableManager';
 import ChartCreator from './ChartCreator';
@@ -19,6 +20,7 @@ export const TextEditor = () => {
   const fabricCanvasRef = useRef<Canvas | null>(null);
   const [currentContent, setCurrentContent] = useState<string>('');
   const [showComments, setShowComments] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [language, setLanguage] = useState<'en' | 'es'>('en');
   const [documentId, setDocumentId] = useState<string>();
@@ -74,6 +76,38 @@ export const TextEditor = () => {
 
         case 'toggleComments':
           setShowComments(!showComments);
+          break;
+
+        case 'toggleVersions':
+          setShowVersions(!showVersions);
+          break;
+
+        case 'saveVersion':
+          if (!documentId) {
+            toast.error("Please save the document first");
+            return;
+          }
+          const versionName = window.prompt('Enter version name (optional):');
+          const versionDescription = window.prompt('Enter version description (optional):');
+          const isMajor = window.confirm('Is this a major version?');
+          
+          try {
+            const { error } = await supabase
+              .from('document_versions')
+              .insert([{
+                document_id: documentId,
+                content: currentContent,
+                version_name: versionName,
+                version_description: versionDescription,
+                is_major_version: isMajor,
+              }]);
+
+            if (error) throw error;
+            toast.success("Version saved successfully");
+          } catch (error) {
+            console.error('Error saving version:', error);
+            toast.error("Failed to save version");
+          }
           break;
 
         case 'startDictation':
@@ -200,18 +234,35 @@ export const TextEditor = () => {
           <div ref={canvasContainerRef} className="mt-4" />
         </div>
         
-        {showComments && (
-          <Comments onSuggestionApply={(originalText, suggestion) => {
-            if (!editorRef.current) return;
-            
-            const content = editorRef.current.innerHTML;
-            const newContent = content.replace(originalText, suggestion);
-            editorRef.current.innerHTML = newContent;
-            setCurrentContent(newContent);
-            
-            toast.success("Suggestion applied successfully");
-          }} />
-        )}
+        <div className="space-y-4">
+          {showVersions && (
+            <VersionControl
+              documentId={documentId}
+              onVersionSelect={(content) => {
+                if (editorRef.current) {
+                  editorRef.current.innerHTML = content;
+                  setCurrentContent(content);
+                }
+              }}
+            />
+          )}
+          
+          {showComments && (
+            <Comments
+              documentId={documentId}
+              onSuggestionApply={(originalText, suggestion) => {
+                if (!editorRef.current) return;
+                
+                const content = editorRef.current.innerHTML;
+                const newContent = content.replace(originalText, suggestion);
+                editorRef.current.innerHTML = newContent;
+                setCurrentContent(newContent);
+                
+                toast.success("Suggestion applied successfully");
+              }}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

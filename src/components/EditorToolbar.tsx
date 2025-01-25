@@ -6,7 +6,7 @@ import {
   PaintBucket, Grid, MessageSquare, FileText, Image, Table,
   Link, IndentIncrease, IndentDecrease, Superscript, Subscript,
   ArrowUpDown, Strikethrough, Eraser, FileInput, Printer, Download,
-  Share2, Settings, HelpCircle, Languages, Save, BarChart
+  Share2, Settings, HelpCircle, Languages, Save, BarChart, GitBranch, GitCommit
 } from 'lucide-react';
 import {
   Select,
@@ -114,6 +114,14 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({
               <DropdownMenuItem onClick={handleSave}>
                 <Save className="w-4 h-4 mr-2" />
                 Save
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onFormat('saveVersion')}>
+                <GitBranch className="w-4 h-4 mr-2" />
+                Save Version
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onFormat('toggleVersions')}>
+                <GitCommit className="w-4 h-4 mr-2" />
+                Version History
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onFormat('exportPDF')}>
                 <Download className="w-4 h-4 mr-2" />
