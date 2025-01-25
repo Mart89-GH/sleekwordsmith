@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface Comment {
   id: string;
@@ -15,6 +16,7 @@ interface Comment {
   created_at: string;
   user_id: string;
   parent_comment_id: string | null;
+  document_id: string | null;
 }
 
 interface CommentsProps {
@@ -42,7 +44,15 @@ const Comments: React.FC<CommentsProps> = ({ documentId, onSuggestionApply }) =>
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setComments(data || []);
+      
+      // Transform the data to match the Comment interface
+      const transformedComments: Comment[] = (data || []).map(comment => ({
+        ...comment,
+        selection: '', // Add default selection since it's not in the database
+        position: comment.position || { top: 0, left: 0 },
+      }));
+      
+      setComments(transformedComments);
     } catch (error) {
       console.error('Error loading comments:', error);
       toast.error('Failed to load comments');
@@ -60,9 +70,12 @@ const Comments: React.FC<CommentsProps> = ({ documentId, onSuggestionApply }) =>
     const rect = range.getBoundingClientRect();
 
     try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
       const { data, error } = await supabase
         .from('document_comments')
-        .insert([{
+        .insert({
           document_id: documentId,
           content: newComment,
           position: {
@@ -70,13 +83,21 @@ const Comments: React.FC<CommentsProps> = ({ documentId, onSuggestionApply }) =>
             left: rect.right + window.scrollX,
           },
           parent_comment_id: replyTo,
-        }])
+          user_id: userData.user.id,
+        })
         .select()
         .single();
 
       if (error) throw error;
 
-      setComments([...comments, data]);
+      // Transform the new comment to match the Comment interface
+      const newCommentData: Comment = {
+        ...data,
+        selection: selection.toString(),
+        position: data.position || { top: 0, left: 0 },
+      };
+
+      setComments([...comments, newCommentData]);
       setNewComment('');
       setReplyTo(null);
       toast.success('Comment added successfully');
